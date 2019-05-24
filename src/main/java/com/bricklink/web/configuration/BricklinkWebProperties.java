@@ -27,6 +27,7 @@ public class BricklinkWebProperties {
     private Path clientConfigDir;
     private Path clientConfigFile;
     private Bricklink bricklink;
+    private Pool pool;
 
     public void setClientConfigDir(Path clientConfigDir) {
         this.clientConfigDir = clientConfigDir;
@@ -72,6 +73,11 @@ public class BricklinkWebProperties {
     public Bricklink getBricklink() {
         return Optional.ofNullable(bricklink)
                        .orElseThrow(() -> new IllegalStateException("Bricklink properties have not been loaded"));
+    }
+
+    @Data
+    public static class Pool {
+        private Integer size;
     }
 
     @Data

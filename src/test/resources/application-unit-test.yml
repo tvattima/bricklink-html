@@ -1,0 +1,9 @@
+bricklink:
+  rest:
+    client-config-dir: C:\\Users\\tvatt\\.credentials\\bricklink
+    client-config-file: bricklink-client-api-keys.json
+  web:
+    client-config-dir:C:\\Users\\tvatt\\.credentials\\bricklink
+    client-config-file: bricklink-web.json
+    pool:
+      size: 10
