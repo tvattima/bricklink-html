@@ -1,6 +1,7 @@
 package com.bricklink.web.configuration;
 
 import com.bricklink.web.support.BricklinkSession;
+import com.bricklink.web.support.BricklinkWebService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.pool2.ObjectPool;
 import org.apache.commons.pool2.PooledObjectFactory;
@@ -23,5 +24,10 @@ public class BricklinkWebConfiguration {
         poolConfig.setMinIdle(1);
         poolConfig.setMaxTotal(bricklinkWebProperties.getPool().getSize());
         return new GenericObjectPool<>(pooledObjectFactory);
+    }
+
+    @Bean
+    public BricklinkWebService bricklinkWebService(final BricklinkWebProperties bricklinkWebProperties, final ObjectMapper objectMapper) {
+        return new BricklinkWebService(bricklinkWebProperties, objectMapper);
     }
 }
