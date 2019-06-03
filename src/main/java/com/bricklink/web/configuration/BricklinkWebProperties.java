@@ -77,7 +77,9 @@ public class BricklinkWebProperties {
 
     @Data
     public static class Pool {
-        private Integer size;
+        private Integer defaultMaxPerRoute;
+        private Integer maxPerRoute;
+        private Integer maxTotal;
     }
 
     @Data
