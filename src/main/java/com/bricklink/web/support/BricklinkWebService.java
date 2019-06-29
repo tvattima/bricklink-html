@@ -7,13 +7,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.http.HttpHost;
 import org.apache.http.client.CookieStore;
+import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.*;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.conn.ConnectionKeepAliveStrategy;
 import org.apache.http.conn.HttpClientConnectionManager;
-import org.apache.http.conn.routing.HttpRoute;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.mime.HttpMultipartMode;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
@@ -21,7 +20,6 @@ import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
-import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.util.EntityUtils;
 
 import java.io.IOException;
@@ -165,5 +163,9 @@ public class BricklinkWebService {
         String paddedHexSystemTimeMillis = StringUtils.rightPad(hexSystemTimeMillis, 16, '0');
         String mid = paddedHexSystemTimeMillis + "-" + StringUtils.leftPad(Integer.toHexString(r.nextInt(65535) + 1), 4, '0') + StringUtils.leftPad(Integer.toHexString(r.nextInt(65535) + 1), 4, '0') + StringUtils.leftPad(Integer.toHexString(r.nextInt(65535) + 1), 4, '0') + StringUtils.leftPad(Integer.toHexString(r.nextInt(65535) + 1), 4, '0');
         return mid;
+    }
+
+    public HttpClient getHttpClient() {
+        return this.httpClient;
     }
 }
