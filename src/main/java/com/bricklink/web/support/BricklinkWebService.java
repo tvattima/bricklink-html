@@ -9,6 +9,8 @@ import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.CookieStore;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.config.CookieSpecs;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.methods.*;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.conn.ConnectionKeepAliveStrategy;
@@ -38,6 +40,7 @@ public class BricklinkWebService {
     private final ConnectionKeepAliveStrategy connectionKeepAliveStrategy;
     private CloseableHttpClient httpClient;
     private BricklinkSession bricklinkSession;
+    private RequestConfig requestConfig = RequestConfig.custom().setCookieSpec(CookieSpecs.STANDARD).build();
 
     public BricklinkWebService(HttpClientConnectionManager httpClientConnectionManager, BricklinkWebProperties properties, ObjectMapper objectMapper, ConnectionKeepAliveStrategy connectionKeepAliveStrategy) {
         this.httpClientConnectionManager = httpClientConnectionManager;
@@ -59,7 +62,8 @@ public class BricklinkWebService {
         // GET imgAdd page
         URL imgAddUrl = properties.getURL("imgAdd");
         String imgAddUrlString = imgAddUrl.toExternalForm() + "?invID=" + blInventoryId;
-        HttpUriRequest imgAddGet = new HttpGet(imgAddUrlString);
+        HttpGet imgAddGet = new HttpGet(imgAddUrlString);
+        imgAddGet.setConfig(requestConfig);
         CloseableHttpResponse response = null;
         try {
             response = httpClient.execute(imgAddGet, bricklinkSession.getHttpContext());
@@ -82,6 +86,7 @@ public class BricklinkWebService {
         }
 
         HttpPost imaAddPost = new HttpPost(imgAddUrlString + "&a=a");
+        imaAddPost.setConfig(requestConfig);
         imaAddPost.setEntity(builder.build());
         try {
             response = httpClient.execute(imaAddPost, bricklinkSession.getHttpContext());
@@ -117,6 +122,7 @@ public class BricklinkWebService {
                                                  .addParameter("keepme_loggedin", "false")
                                                  .addParameter("pageid", "LOGIN")
                                                  .addParameter("mid", computeMID())
+                                                 .setConfig(requestConfig)
                                                  .build();
             response = httpClient.execute(login, context);
             AuthenticationResult authenticationResult = objectMapper.readValue(IOUtils.toString(response.getEntity()
@@ -143,6 +149,7 @@ public class BricklinkWebService {
         URL logoutUrl = properties.getURL("login-logout");
         String logoutUrlString = logoutUrl.toExternalForm() + "?do_logout=true";
         HttpGet logout = new HttpGet(logoutUrlString);
+        logout.setConfig(requestConfig);
         CloseableHttpResponse response = null;
         try {
             response = httpClient.execute(logout, bricklinkSession.getHttpContext());
