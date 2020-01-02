@@ -7,6 +7,7 @@ import com.vattima.lego.imaging.service.ImageScalingService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.conn.ConnectionKeepAliveStrategy;
 import org.apache.http.conn.HttpClientConnectionManager;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,8 +26,8 @@ import java.util.stream.IntStream;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Slf4j
-@RunWith(SpringRunner.class)
-@ContextConfiguration(classes = {BricklinkWebServiceTest.MyTestConfiguration.class, BricklinkWebConfiguration.class})
+//@RunWith(SpringRunner.class)
+//@ContextConfiguration(classes = {BricklinkWebServiceTest.MyTestConfiguration.class, BricklinkWebConfiguration.class})
 public class BricklinkWebServiceTest {
     @Autowired
     private ConnectionKeepAliveStrategy connectionKeepAliveStrategy;
@@ -41,6 +42,7 @@ public class BricklinkWebServiceTest {
     private ObjectMapper mapper;
 
     @Test
+    @Ignore
     public void uploadInventoryImage_authenticatesUploadsAndDoesLogout() throws Exception {
         BricklinkSession bricklinkSession = null;
         StopWatch timer = new StopWatch();
@@ -61,6 +63,7 @@ public class BricklinkWebServiceTest {
     }
 
     @Test
+    @Ignore
     public void uploadInventory_multiThreaded() {
         ImageScalingService imageScalingService = new ImageScalingService();
         BricklinkWebService bricklinkWebService = new BricklinkWebService(httpClientConnectionManager, properties, mapper, connectionKeepAliveStrategy);
