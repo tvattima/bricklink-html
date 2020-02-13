@@ -11,7 +11,11 @@ import org.apache.http.client.CookieStore;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.config.CookieSpecs;
 import org.apache.http.client.config.RequestConfig;
-import org.apache.http.client.methods.*;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.client.methods.RequestBuilder;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.conn.ConnectionKeepAliveStrategy;
 import org.apache.http.conn.HttpClientConnectionManager;
@@ -28,9 +32,12 @@ import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Random;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Slf4j
 public class BricklinkWebService {
@@ -40,7 +47,9 @@ public class BricklinkWebService {
     private final ConnectionKeepAliveStrategy connectionKeepAliveStrategy;
     private CloseableHttpClient httpClient;
     private BricklinkSession bricklinkSession;
-    private RequestConfig requestConfig = RequestConfig.custom().setCookieSpec(CookieSpecs.STANDARD).build();
+    private RequestConfig requestConfig = RequestConfig.custom()
+                                                       .setCookieSpec(CookieSpecs.STANDARD)
+                                                       .build();
 
     public BricklinkWebService(HttpClientConnectionManager httpClientConnectionManager, BricklinkWebProperties properties, ObjectMapper objectMapper, ConnectionKeepAliveStrategy connectionKeepAliveStrategy) {
         this.httpClientConnectionManager = httpClientConnectionManager;
@@ -174,5 +183,181 @@ public class BricklinkWebService {
 
     public HttpClient getHttpClient() {
         return this.httpClient;
+    }
+
+    public BricklinkSession updateInventoryCondition(Long blInventoryId, String invNew, String invComplete) {
+        log.info("Starting update of Bricklink inventory [{}] condition...", blInventoryId);
+        // GET Inventory Detail page (contains form to update)
+        URL inventoryDetailUrl = properties.getURL("inventoryDetail");
+        String inventoryDetailUrlString = inventoryDetailUrl.toExternalForm() + "?invID=" + blInventoryId;
+        HttpGet inventoryDetailGet = new HttpGet(inventoryDetailUrlString);
+        inventoryDetailGet.setConfig(requestConfig);
+        CloseableHttpResponse response = null;
+        try {
+            response = httpClient.execute(inventoryDetailGet, bricklinkSession.getHttpContext());
+            EntityUtils.consume(response.getEntity());
+            response.close();
+        } catch (IOException e) {
+            throw new BricklinkWebException(e);
+        }
+
+        // Update form fields
+        URL inventoryUpdateUrl = properties.getURL("inventoryUpdate");
+        String inventoryUpdateUrlString = inventoryUpdateUrl.toExternalForm() + "?invID=" + blInventoryId + "&pg=1&invSearch=D&a=c&viewPriceGuide=";
+        response = null;
+        try {
+            inventoryUpdateUrl = new URL(inventoryUpdateUrlString);
+            RequestBuilder requestBuilder = RequestBuilder.post()
+                                                          .setUri(inventoryUpdateUrl.toURI());
+            setInventoryUpdateFormFieldsForConditionUpdate(requestBuilder, blInventoryId, invNew, invComplete);
+            HttpUriRequest inventoryUpdateRequest = requestBuilder.setConfig(requestConfig)
+                                                                  .build();
+            // POST Inventory Update
+            response = httpClient.execute(inventoryUpdateRequest, bricklinkSession.getHttpContext());
+            EntityUtils.consume(response.getEntity());
+            response.close();
+        } catch (IOException | URISyntaxException e) {
+            throw new BricklinkWebException(e);
+        }
+        log.info("Updated Bricklink inventory [{}] Condition New/Used to [{}], Completeness to [{}]", blInventoryId, invNew, invComplete);
+
+        return bricklinkSession;
+    }
+
+    public BricklinkSession updateExtendedDescription(Long blInventoryId, String extendedDescription) {
+        log.info("Starting update of Bricklink inventory [{}] extended description...", blInventoryId);
+        // GET Inventory Detail page (contains form to update)
+        URL inventoryDetailUrl = properties.getURL("inventoryDetail");
+        String inventoryDetailUrlString = inventoryDetailUrl.toExternalForm() + "?invID=" + blInventoryId;
+        HttpGet inventoryDetailGet = new HttpGet(inventoryDetailUrlString);
+        inventoryDetailGet.setConfig(requestConfig);
+        CloseableHttpResponse response = null;
+
+        String oldItemType = null;
+        String oldItemNoSeq = null;
+        String oldColorID = null;
+        String oldCatID = null;
+
+        try {
+            response = httpClient.execute(inventoryDetailGet, bricklinkSession.getHttpContext());
+            String content = IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8);
+            oldItemType = extractFromPattern(content, Pattern.compile("<INPUT TYPE=\"HIDDEN\" NAME=\"oldItemType"+blInventoryId+"\" VALUE=\"(.*?)\">"));
+            oldItemNoSeq = extractFromPattern(content, Pattern.compile("<INPUT TYPE=\"HIDDEN\" NAME=\"oldItemNoSeq"+blInventoryId+"\" VALUE=\"(.*?)\">"));
+            oldColorID = extractFromPattern(content, Pattern.compile("<INPUT TYPE=\"HIDDEN\" NAME=\"oldColorID"+blInventoryId+"\" VALUE=\"(.*?)\">"));
+            oldCatID = extractFromPattern(content, Pattern.compile("<INPUT TYPE=\"HIDDEN\" NAME=\"oldCatID"+blInventoryId+"\" VALUE=\"(.*?)\">"));
+            EntityUtils.consume(response.getEntity());
+            response.close();
+        } catch (IOException e) {
+            throw new BricklinkWebException(e);
+        }
+
+        // Update form fields
+        URL inventoryUpdateUrl = properties.getURL("inventoryUpdate");
+        String inventoryUpdateUrlString = inventoryUpdateUrl.toExternalForm() + "?invID=" + blInventoryId + "&pg=1&invSearch=D&a=c&viewPriceGuide=";
+        response = null;
+        try {
+            inventoryUpdateUrl = new URL(inventoryUpdateUrlString);
+            RequestBuilder requestBuilder = RequestBuilder.post()
+                                                          .setUri(inventoryUpdateUrl.toURI());
+            setInventoryUpdateFormFieldsForExtendedDescriptionUpdate(requestBuilder, blInventoryId, extendedDescription);
+            addOldNewFormField(requestBuilder, blInventoryId, "ItemType", oldItemType, oldItemType);
+            addOldNewFormField(requestBuilder, blInventoryId, "ItemNoSeq", oldItemNoSeq, oldItemNoSeq);
+            addOldNewFormField(requestBuilder, blInventoryId, "ColorID", oldColorID, oldColorID);
+            addOldNewFormField(requestBuilder, blInventoryId, "CatID", oldCatID, oldCatID);
+            HttpUriRequest inventoryUpdateRequest = requestBuilder.setConfig(requestConfig)
+                                                                  .build();
+            // POST Inventory Update
+            response = httpClient.execute(inventoryUpdateRequest, bricklinkSession.getHttpContext());
+            EntityUtils.consume(response.getEntity());
+            response.close();
+        } catch (IOException | URISyntaxException e) {
+            throw new BricklinkWebException(e);
+        }
+        log.info("Updated Bricklink inventory [{}] Extended Description to [{}]", blInventoryId, extendedDescription);
+
+        return bricklinkSession;
+    }
+
+    private void addOldNewFormField(RequestBuilder requestBuilder, Long inventoryId, String formFieldName, String oldValue, String newValue) {
+        requestBuilder.addParameter("old" + formFieldName+inventoryId, oldValue);
+        requestBuilder.addParameter("new" + formFieldName+inventoryId, newValue);
+    }
+
+    private void addPlaceholderOldNewFormField(RequestBuilder requestBuilder, Long inventoryId, String formFieldName) {
+        addOldNewFormField(requestBuilder, inventoryId, formFieldName, "x", "x");
+    }
+
+    private void setInventoryUpdateFormFieldsForConditionUpdate(RequestBuilder requestBuilder, Long inventoryId, String invNew, String invComplete) {
+        requestBuilder.addParameter("invID", Long.toString(inventoryId));
+        requestBuilder.addParameter("revID", "1");
+        requestBuilder.addParameter("userID", Integer.toString(bricklinkSession.getAuthenticationResult()
+                                                                               .getUser()
+                                                                               .getUser_no()));
+        requestBuilder.addParameter("oldItemNotCatalog", "");
+        addPlaceholderOldNewFormField(requestBuilder, inventoryId, "InvDescription");
+        addPlaceholderOldNewFormField(requestBuilder, inventoryId, "InvExtended");
+        addPlaceholderOldNewFormField(requestBuilder, inventoryId, "InvRemarks");
+        addPlaceholderOldNewFormField(requestBuilder, inventoryId, "InvQty");
+        addPlaceholderOldNewFormField(requestBuilder, inventoryId, "InvPrice");
+        addPlaceholderOldNewFormField(requestBuilder, inventoryId, "InvCost");
+        addPlaceholderOldNewFormField(requestBuilder, inventoryId, "InvBulk");
+        addPlaceholderOldNewFormField(requestBuilder, inventoryId, "InvSale");
+        addOldNewFormField(requestBuilder, inventoryId, "InvNew", "Q", invNew);
+        addOldNewFormField(requestBuilder, inventoryId, "InvComplete", "Q", invComplete);
+        addPlaceholderOldNewFormField(requestBuilder, inventoryId, "TierQty1");
+        addPlaceholderOldNewFormField(requestBuilder, inventoryId, "TierPrice1");
+        addPlaceholderOldNewFormField(requestBuilder, inventoryId, "InvRetain");
+        addPlaceholderOldNewFormField(requestBuilder, inventoryId, "TierQty2");
+        addPlaceholderOldNewFormField(requestBuilder, inventoryId, "TierPrice2");
+        addPlaceholderOldNewFormField(requestBuilder, inventoryId, "InvStock");
+        addPlaceholderOldNewFormField(requestBuilder, inventoryId, "InvStockID");
+        addPlaceholderOldNewFormField(requestBuilder, inventoryId, "TierQty3");
+        addPlaceholderOldNewFormField(requestBuilder, inventoryId, "TierPrice3");
+        addPlaceholderOldNewFormField(requestBuilder, inventoryId, "InvBuyerUsername");
+        addPlaceholderOldNewFormField(requestBuilder, inventoryId, "ItemType");
+        addPlaceholderOldNewFormField(requestBuilder, inventoryId, "ItemNoSeq");
+        addPlaceholderOldNewFormField(requestBuilder, inventoryId, "ColorID");
+        addPlaceholderOldNewFormField(requestBuilder, inventoryId, "CatID");
+    }
+
+    private void setInventoryUpdateFormFieldsForExtendedDescriptionUpdate(RequestBuilder requestBuilder, Long inventoryId, String invExtended) {
+        requestBuilder.addParameter("invID", Long.toString(inventoryId));
+        requestBuilder.addParameter("revID", "1");
+        requestBuilder.addParameter("userID", Integer.toString(bricklinkSession.getAuthenticationResult()
+                                                                               .getUser()
+                                                                               .getUser_no()));
+        requestBuilder.addParameter("oldItemNotCatalog", "");
+        addOldNewFormField(requestBuilder, inventoryId, "InvExtended", "Q", invExtended);
+        addPlaceholderOldNewFormField(requestBuilder, inventoryId, "InvRemarks");
+        addPlaceholderOldNewFormField(requestBuilder, inventoryId, "InvQty");
+        addPlaceholderOldNewFormField(requestBuilder, inventoryId, "InvPrice");
+        addPlaceholderOldNewFormField(requestBuilder, inventoryId, "InvCost");
+        addPlaceholderOldNewFormField(requestBuilder, inventoryId, "InvBulk");
+        addPlaceholderOldNewFormField(requestBuilder, inventoryId, "InvSale");
+        addPlaceholderOldNewFormField(requestBuilder, inventoryId, "InvNew");
+        addPlaceholderOldNewFormField(requestBuilder, inventoryId, "InvComplete");
+        addPlaceholderOldNewFormField(requestBuilder, inventoryId, "TierQty1");
+        addPlaceholderOldNewFormField(requestBuilder, inventoryId, "TierPrice1");
+        addPlaceholderOldNewFormField(requestBuilder, inventoryId, "InvRetain");
+        addPlaceholderOldNewFormField(requestBuilder, inventoryId, "TierQty2");
+        addPlaceholderOldNewFormField(requestBuilder, inventoryId, "TierPrice2");
+        addPlaceholderOldNewFormField(requestBuilder, inventoryId, "InvStock");
+        addPlaceholderOldNewFormField(requestBuilder, inventoryId, "InvStockID");
+        addPlaceholderOldNewFormField(requestBuilder, inventoryId, "TierQty3");
+        addPlaceholderOldNewFormField(requestBuilder, inventoryId, "TierPrice3");
+        addPlaceholderOldNewFormField(requestBuilder, inventoryId, "InvBuyerUsername");
+        addPlaceholderOldNewFormField(requestBuilder, inventoryId, "ItemType");
+        addPlaceholderOldNewFormField(requestBuilder, inventoryId, "ItemNoSeq");
+        addPlaceholderOldNewFormField(requestBuilder, inventoryId, "ColorID");
+        addPlaceholderOldNewFormField(requestBuilder, inventoryId, "CatID");
+    }
+
+    public String extractFromPattern(String content, Pattern pattern) {
+        String extracted = null;
+        Matcher matcher = pattern.matcher(content);
+        if (matcher.find()) {
+            extracted = matcher.group(1);
+        }
+        return extracted;
     }
 }
