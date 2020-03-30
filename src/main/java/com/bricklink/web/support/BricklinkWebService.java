@@ -198,7 +198,7 @@ public class BricklinkWebService {
             EntityUtils.consume(response.getEntity());
             response.close();
         } catch (IOException e) {
-            throw new BricklinkWebException(e);
+            throw new BricklinkWebException(String.format("blInventoryId [%d], invNew [%s], invComplete [%s]", blInventoryId, invNew, invComplete),e);
         }
 
         // Update form fields
@@ -264,6 +264,7 @@ public class BricklinkWebService {
             addOldNewFormField(requestBuilder, blInventoryId, "ItemNoSeq", oldItemNoSeq, oldItemNoSeq);
             addOldNewFormField(requestBuilder, blInventoryId, "ColorID", oldColorID, oldColorID);
             addOldNewFormField(requestBuilder, blInventoryId, "CatID", oldCatID, oldCatID);
+            requestBuilder.addParameter("oldInvStock", "");
             HttpUriRequest inventoryUpdateRequest = requestBuilder.setConfig(requestConfig)
                                                                   .build();
             // POST Inventory Update
@@ -279,8 +280,8 @@ public class BricklinkWebService {
     }
 
     private void addOldNewFormField(RequestBuilder requestBuilder, Long inventoryId, String formFieldName, String oldValue, String newValue) {
-        requestBuilder.addParameter("old" + formFieldName+inventoryId, oldValue);
         requestBuilder.addParameter("new" + formFieldName+inventoryId, newValue);
+        requestBuilder.addParameter("old" + formFieldName+inventoryId, oldValue);
     }
 
     private void addPlaceholderOldNewFormField(RequestBuilder requestBuilder, Long inventoryId, String formFieldName) {
@@ -293,7 +294,7 @@ public class BricklinkWebService {
         requestBuilder.addParameter("userID", Integer.toString(bricklinkSession.getAuthenticationResult()
                                                                                .getUser()
                                                                                .getUser_no()));
-        requestBuilder.addParameter("oldItemNotCatalog", "");
+        requestBuilder.addParameter("oldItemNotCatalog" + inventoryId, "");
         addPlaceholderOldNewFormField(requestBuilder, inventoryId, "InvDescription");
         addPlaceholderOldNewFormField(requestBuilder, inventoryId, "InvExtended");
         addPlaceholderOldNewFormField(requestBuilder, inventoryId, "InvRemarks");
@@ -327,7 +328,8 @@ public class BricklinkWebService {
                                                                                .getUser()
                                                                                .getUser_no()));
         requestBuilder.addParameter("oldItemNotCatalog", "");
-        addOldNewFormField(requestBuilder, inventoryId, "InvExtended", "Q", invExtended);
+        addOldNewFormField(requestBuilder, inventoryId, "InvExtended", "", invExtended);
+        addPlaceholderOldNewFormField(requestBuilder, inventoryId, "InvDescription");
         addPlaceholderOldNewFormField(requestBuilder, inventoryId, "InvRemarks");
         addPlaceholderOldNewFormField(requestBuilder, inventoryId, "InvQty");
         addPlaceholderOldNewFormField(requestBuilder, inventoryId, "InvPrice");
@@ -346,10 +348,6 @@ public class BricklinkWebService {
         addPlaceholderOldNewFormField(requestBuilder, inventoryId, "TierQty3");
         addPlaceholderOldNewFormField(requestBuilder, inventoryId, "TierPrice3");
         addPlaceholderOldNewFormField(requestBuilder, inventoryId, "InvBuyerUsername");
-        addPlaceholderOldNewFormField(requestBuilder, inventoryId, "ItemType");
-        addPlaceholderOldNewFormField(requestBuilder, inventoryId, "ItemNoSeq");
-        addPlaceholderOldNewFormField(requestBuilder, inventoryId, "ColorID");
-        addPlaceholderOldNewFormField(requestBuilder, inventoryId, "CatID");
     }
 
     public String extractFromPattern(String content, Pattern pattern) {
