@@ -1,6 +1,8 @@
 package com.bricklink.api.html;
 
 import com.bricklink.api.html.model.v2.CatalogItem;
+import com.bricklink.api.html.model.v2.WantedList;
+import com.bricklink.web.model.AuthenticationResult;
 import feign.Param;
 import feign.RequestLine;
 

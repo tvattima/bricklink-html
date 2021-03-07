@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.HttpEntity;
 import org.apache.http.client.CookieStore;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.config.CookieSpecs;
@@ -28,6 +29,7 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -56,6 +58,18 @@ public class BricklinkWebService {
         this.properties = properties;
         this.objectMapper = objectMapper;
         this.connectionKeepAliveStrategy = connectionKeepAliveStrategy;
+
+////        httpClient = HttpClients.custom()
+////                                .setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.121 Safari/537.36")
+////                                .setConnectionManager(httpClientConnectionManager)
+////                                .setKeepAliveStrategy(connectionKeepAliveStrategy)
+////                                .build();
+//        httpClient = HttpClientBuilder.create()
+//                                      .setConnectionManager(httpClientConnectionManager)
+//                                      .setKeepAliveStrategy(connectionKeepAliveStrategy)
+//                                      .setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.121 Safari/537.36")
+//                                      .build();
+//        this.bricklinkSession = authenticate();
 
         httpClient = HttpClients.custom()
                                 .setConnectionManager(httpClientConnectionManager)
@@ -279,9 +293,32 @@ public class BricklinkWebService {
         return bricklinkSession;
     }
 
+    public byte[] dowloadWantedList(Long wantedListId, String wantedListName) {
+        log.info("Starting download of Bricklink Wanted List [{}]...", wantedListId);
+
+        URL wantedListDownloadUrl = properties.getURL("wantedListDownload");
+        String wantedListDownloadUrlString = wantedListDownloadUrl.toExternalForm() + "?wantedMoreID=" + wantedListId + "&wlName" + wantedListName;
+        HttpGet wantedListDownloadGet = new HttpGet(wantedListDownloadUrlString);
+        wantedListDownloadGet.setConfig(requestConfig);
+        CloseableHttpResponse response = null;
+        ByteArrayOutputStream outstream = new ByteArrayOutputStream();
+        try {
+            response = httpClient.execute(wantedListDownloadGet, bricklinkSession.getHttpContext());
+            HttpEntity entity = response.getEntity();
+            if (entity != null) {
+                entity.writeTo(outstream);
+            }
+            EntityUtils.consume(entity);
+            response.close();
+        } catch (IOException e) {
+            throw new BricklinkWebException(String.format("Unable to download wanted list [%d]", wantedListId), e);
+        }
+        return outstream.toByteArray();
+    }
+
     private void addOldNewFormField(RequestBuilder requestBuilder, Long inventoryId, String formFieldName, String oldValue, String newValue) {
-        requestBuilder.addParameter("new" + formFieldName+inventoryId, newValue);
-        requestBuilder.addParameter("old" + formFieldName+inventoryId, oldValue);
+        requestBuilder.addParameter("new" + formFieldName + inventoryId, newValue);
+        requestBuilder.addParameter("old" + formFieldName + inventoryId, oldValue);
     }
 
     private void addPlaceholderOldNewFormField(RequestBuilder requestBuilder, Long inventoryId, String formFieldName) {

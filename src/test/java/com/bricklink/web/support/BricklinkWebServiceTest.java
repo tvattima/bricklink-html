@@ -43,6 +43,7 @@ public class BricklinkWebServiceTest {
     private ObjectMapper mapper;
 
     @Test
+    @Ignore
     public void uploadInventoryImage_authenticatesUploadsAndDoesLogout() throws Exception {
         BricklinkSession bricklinkSession = null;
         ImageScalingService imageScalingService = new ImageScalingService();

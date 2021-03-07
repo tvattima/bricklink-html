@@ -16,19 +16,20 @@ import java.net.URL;
 import java.util.*;
 
 public class HtmlUnitClient implements Client {
+    final WebClient webClient = new WebClient();
 
     @Override
     public Response execute(Request request, Request.Options options) throws IOException {
-        final WebClient webClient = new WebClient();
         webClient.getOptions().setThrowExceptionOnScriptError(false);
         WebRequest webRequest = toWebClientRequest(request);
         HtmlPage htmlPage = webClient.getPage(webRequest);
-        return toFeignResponse(htmlPage);
+        return toFeignResponse(request, htmlPage);
     }
 
-    private Response toFeignResponse(HtmlPage htmlPage) {
+    private Response toFeignResponse(Request request, HtmlPage htmlPage) {
         WebResponse webResponse = htmlPage.getWebResponse();
         return feign.Response.builder()
+                             .request(request)
                              .status(webResponse.getStatusCode())
                              .reason(webResponse.getStatusMessage())
                              .headers(toMap(webResponse.getResponseHeaders()))
