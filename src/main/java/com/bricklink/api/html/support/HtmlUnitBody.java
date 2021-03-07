@@ -11,6 +11,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 @Slf4j
 @Getter
@@ -48,5 +50,10 @@ public class HtmlUnitBody implements Response.Body {
     public void close() throws IOException {
         this.htmlPage.cleanUp();
         this.response.cleanUp();
+    }
+
+    @Override
+    public Reader asReader(Charset charset) throws IOException {
+        return this.asReader(charset);
     }
 }
