@@ -17,7 +17,7 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>11</java.version>
-        <io.github.openfeign.version>10.12</io.github.openfeign.version>
+        <openfeign.version>10.12</openfeign.version>
         <dbunit.version>2.6.0</dbunit.version>
         <htmlunit.version>2.47.1</htmlunit.version>
         <httpclient.version>4.5.13</httpclient.version>
@@ -38,19 +38,19 @@
         <dependency>
             <groupId>io.github.openfeign</groupId>
             <artifactId>feign-okhttp</artifactId>
-            <version>${io.github.openfeign.version}</version>
+            <version>${openfeign.version}</version>
         </dependency>
 
         <dependency>
             <groupId>io.github.openfeign</groupId>
             <artifactId>feign-jackson</artifactId>
-            <version>${io.github.openfeign.version}</version>
+            <version>${openfeign.version}</version>
         </dependency>
 
         <dependency>
             <groupId>io.github.openfeign</groupId>
             <artifactId>feign-slf4j</artifactId>
-            <version>${io.github.openfeign.version}</version>
+            <version>${openfeign.version}</version>
         </dependency>
 
         <dependency>
