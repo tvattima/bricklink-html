@@ -1,12 +1,15 @@
 package com.bricklink.web.support;
 
+import com.bricklink.api.html.model.v2.WantedList;
 import com.bricklink.web.BricklinkWebException;
 import com.bricklink.web.configuration.BricklinkWebProperties;
 import com.bricklink.web.model.AuthenticationResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.RegExUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.text.StringEscapeUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.client.CookieStore;
 import org.apache.http.client.HttpClient;
@@ -31,6 +34,8 @@ import org.apache.http.util.EntityUtils;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.PasswordAuthentication;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.Charset;
@@ -119,6 +124,44 @@ public class BricklinkWebService {
             throw new BricklinkWebException(e);
         }
         return bricklinkSession;
+    }
+
+    public void extractWantedList() {
+        // GET imgAdd page
+        URL wantedListUrl = null;
+        try {
+            wantedListUrl = new URL("https://www.bricklink.com/v2/wanted/search.page?type=A&wantedMoreID=7159374&sort=1&pageSize=300");
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        }
+        HttpGet wantedListGet = new HttpGet(wantedListUrl.toString());
+        wantedListGet.setConfig(requestConfig);
+        CloseableHttpResponse response = null;
+        try {
+            response = httpClient.execute(wantedListGet, bricklinkSession.getHttpContext());
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            HttpEntity entity = response.getEntity();
+            if (entity != null) {
+                entity.writeTo(byteArrayOutputStream);
+            }
+            String html = new String(byteArrayOutputStream.toByteArray());
+            String unescapedHtml =  StringEscapeUtils.unescapeHtml4(html);
+            System.out.println(html);
+            System.out.println(unescapedHtml);
+
+            Pattern pattern = Pattern.compile("^.*wlJson\\s*=\\s*(.*?);.*$", Pattern.MULTILINE | Pattern.DOTALL);
+            Matcher matcher = pattern.matcher(unescapedHtml);
+            matcher.find();
+            String wlJson = matcher.group(1);
+            log.info("{}", wlJson);
+            ObjectMapper mapper = new ObjectMapper();
+            WantedList wantedList = mapper.readValue(wlJson, WantedList.class);
+            EntityUtils.consume(response.getEntity());
+            response.close();
+        } catch (IOException e) {
+            throw new BricklinkWebException(e);
+        }
+
     }
 
     public BricklinkSession authenticate() {
@@ -256,8 +299,8 @@ public class BricklinkWebService {
             response = httpClient.execute(inventoryDetailGet, bricklinkSession.getHttpContext());
             String content = IOUtils.toString(response.getEntity().getContent(), StandardCharsets.UTF_8);
             oldItemType = extractFromPattern(content, Pattern.compile("<INPUT TYPE=\"HIDDEN\" NAME=\"oldItemType"+blInventoryId+"\" VALUE=\"(.*?)\">"));
-            oldItemNoSeq = extractFromPattern(content, Pattern.compile("<INPUT TYPE=\"HIDDEN\" NAME=\"oldItemNoSeq"+blInventoryId+"\" VALUE=\"(.*?)\">"));
-            oldColorID = extractFromPattern(content, Pattern.compile("<INPUT TYPE=\"HIDDEN\" NAME=\"oldColorID"+blInventoryId+"\" VALUE=\"(.*?)\">"));
+            oldItemNoSeq = extractFromPattern(content, Pattern.compile("<input.+?type=\"text\".+?id=\"ItemNoSeq"+blInventoryId+"\".+?value=\"(.*?)\">"));
+            oldColorID = "0"; //extractFromPattern(content, Pattern.compile("<select.+?id=\"ColorID"+blInventoryId+"\".+?>"));
             oldCatID = extractFromPattern(content, Pattern.compile("<INPUT TYPE=\"HIDDEN\" NAME=\"oldCatID"+blInventoryId+"\" VALUE=\"(.*?)\">"));
             EntityUtils.consume(response.getEntity());
             response.close();
