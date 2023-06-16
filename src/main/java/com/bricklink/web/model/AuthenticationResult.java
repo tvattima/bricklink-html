@@ -10,6 +10,7 @@ public class AuthenticationResult {
     private String returnMessage;
     private int errorTicket;
     private int procssingTime;
+    private String strRefNo;
 
     @Data
     public class User {

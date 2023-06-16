@@ -1,17 +1,17 @@
 package com.bricklink.api.html.support;
 
 import feign.Response;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Type;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class ResponseAdapterRegistryTest {
+class ResponseAdapterRegistryTest {
 
     @Test
-    public void test_RegisterMultiple() {
+    void test_RegisterMultiple() {
         ResponseAdapter<A> adapterA = new AResponseAdapter();
         ResponseAdapter<B> adapterB = new BResponseAdapter();
         ResponseAdapter<C> adapterC = new CResponseAdapter();

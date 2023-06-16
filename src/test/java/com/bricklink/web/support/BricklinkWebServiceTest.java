@@ -6,14 +6,12 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.conn.ConnectionKeepAliveStrategy;
 import org.apache.http.conn.HttpClientConnectionManager;
-import org.junit.Ignore;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import org.springframework.util.StopWatch;
 
 import java.nio.file.Paths;
@@ -21,8 +19,7 @@ import java.nio.file.Paths;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Slf4j
-@RunWith(SpringRunner.class)
-@ContextConfiguration(classes = {BricklinkWebServiceTest.MyTestConfiguration.class, BricklinkWebConfiguration.class})
+@SpringJUnitConfig(classes = {BricklinkWebServiceTest.MyTestConfiguration.class, BricklinkWebConfiguration.class})
 public class BricklinkWebServiceTest {
     @Autowired
     private ConnectionKeepAliveStrategy connectionKeepAliveStrategy;
@@ -60,7 +57,7 @@ public class BricklinkWebServiceTest {
 //    }
 
     @Test
-    public void extractWantedListJson() {
+    void extractWantedListJson() {
         BricklinkSession bricklinkSession = null;
         StopWatch timer = new StopWatch();
         timer.start();
@@ -80,7 +77,7 @@ public class BricklinkWebServiceTest {
     }
 
 
-    @Ignore
+    @Disabled
     public void updateExtendedDescription() {
         BricklinkSession bricklinkSession = null;
         String extendedDescription = "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nunc eu elit sit amet ligula convallis scelerisque eu sed urna. Cras fermentum vitae massa non sollicitudin. Fusce condimentum sem in tempus convallis. Donec vitae eros eget ante ultrices viverra in vel lorem. Pellentesque rhoncus gravida magna at aliquet. Vivamus pulvinar sollicitudin ultrices. Curabitur quis velit feugiat, sodales dolor nec, vestibulum massa. Aliquam enim est, gravida sit amet tempus eu, gravida ac risus. Cras suscipit, metus non varius hendrerit, nulla ipsum blandit nunc, a tristique nunc metus ac orci. Suspendisse in congue velit. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas. Vestibulum lacus sapien, consequat nec finibus vitae, sagittis nec nisi. Vivamus quis faucibus purus. Suspendisse vitae sodales eros. Nunc ultrices mi ante, eu mollis enim varius a.";

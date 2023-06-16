@@ -1,6 +1,6 @@
 package com.bricklink.web.configuration;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.net.URL;
 import java.util.HashMap;
@@ -8,9 +8,9 @@ import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-public class BricklinkWebPropertiesTest {
+class BricklinkWebPropertiesTest {
     @Test
-    public void writeJson() throws Exception {
+    void writeJson() throws Exception {
         BricklinkWebProperties bricklinkWebProperties = new BricklinkWebProperties();
         bricklinkWebProperties.setBricklink(new BricklinkWebProperties.Bricklink());
         BricklinkWebProperties.Bricklink bricklink = bricklinkWebProperties.getBricklink();
