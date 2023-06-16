@@ -1,56 +1,42 @@
 package com.bricklink.api.html.model.v2;
 
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
-import org.apache.commons.lang3.StringUtils;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.Data;
 
 import java.util.List;
-import java.util.Optional;
 
-@Setter
-@Getter
-@EqualsAndHashCode
-@ToString
+@Data
 public class WantedList {
-    public static final WantedList EMPTY = new WantedList();
-
     Integer totalResults;
-    Integer totalCnt;
     List<WantedListInfo> lists;
     List<WantedItem> wantedItems;
-    List<CategoryType> categoryTypes;
-    List<Duplicate> duplicates;
+    List<CategoryType> categories;
+    Integer totalCnt;
     WantedListInfo wantedListInfo;
+    List<Duplicate> duplicates;
     Integer searchMode;
     Integer emptySearch;
     Integer showAdv;
 
-    @Setter
-    @Getter
-    @EqualsAndHashCode
-    @ToString
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    @Data
     static class WantedListInfo {
+        Long id;
         String name;
         String desc;
         Integer num;
         Integer totalNum;
-        Long id;
         String curSymbol;
         Double progress;
     }
 
-    @Setter
-    @Getter
-    @EqualsAndHashCode
-    @ToString
+    @Data
     static class WantedItem {
-        Long wantedId;
-        Long wantedMoreId;
+        Long wantedID;
+        Long wantedMoreID;
         String wantedMoreName;
         String itemNo;
-        String itemId;
+        String itemID;
         Integer itemSeq;
         String itemName;
         String itemType;
@@ -62,36 +48,27 @@ public class WantedList {
         String wantedRemark;
         Double wantedPrice;
         String formatWantedPrice;
-        Integer colorId;
+        Integer colorID;
         String colorName;
         String colorHex;
     }
 
-    @Setter
-    @Getter
-    @EqualsAndHashCode
-    @ToString
+    @Data
     static class CategoryType {
         String type;
+        List<Category> cats;
         Integer total;
-        List<Category> categories;
     }
 
-    @Setter
-    @Getter
-    @EqualsAndHashCode
-    @ToString
+    @Data
     static class Category {
         String catName;
-        Integer catId;
+        Integer catID;
         Integer cnt;
         Integer invCnt;
     }
 
-    @Setter
-    @Getter
-    @EqualsAndHashCode
-    @ToString
+    @Data
     static class Duplicate {
     }
 }
