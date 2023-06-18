@@ -18,6 +18,7 @@
         <mockito.version>5.3.1</mockito.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>17</java.version>
+        <lego-imaging.version>1.1.0-SNAPSHOT</lego-imaging.version>
         <openfeign.version>10.12</openfeign.version>
         <dbunit.version>2.6.0</dbunit.version>
         <httpclient.version>4.5.13</httpclient.version>
@@ -118,7 +119,7 @@
         <dependency>
             <groupId>com.vattima.lego</groupId>
             <artifactId>lego-imaging</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
+            <version>${lego-imaging.version}</version>
             <scope>test</scope>
         </dependency>
 
@@ -141,6 +142,8 @@
                 <configuration>
                     <activeRecipes>
                         <recipe>org.openrewrite.java.spring.boot2.UpgradeSpringBoot_2_7</recipe>
+                        <recipe>org.openrewrite.java.migrate.UpgradeToJava17</recipe>
+                        <recipe>org.openrewrite.java.spring.boot2.SpringBoot2JUnit4to5Migration</recipe>
                     </activeRecipes>
                 </configuration>
                 <dependencies>
