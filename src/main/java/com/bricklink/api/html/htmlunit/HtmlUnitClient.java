@@ -21,6 +21,7 @@ public class HtmlUnitClient implements Client {
     @Override
     public Response execute(Request request, Request.Options options) throws IOException {
         webClient.getOptions().setThrowExceptionOnScriptError(false);
+        webClient.getOptions().setUseInsecureSSL(true);
         WebRequest webRequest = toWebClientRequest(request);
         HtmlPage htmlPage = webClient.getPage(webRequest);
         return toFeignResponse(request, htmlPage);

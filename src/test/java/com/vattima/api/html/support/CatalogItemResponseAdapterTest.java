@@ -1,6 +1,7 @@
-package com.bricklink.api.html.support;
+package com.vattima.api.html.support;
 
 import com.bricklink.api.html.model.v2.CatalogItem;
+import com.bricklink.api.html.support.CatalogItemResponseAdapter;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
