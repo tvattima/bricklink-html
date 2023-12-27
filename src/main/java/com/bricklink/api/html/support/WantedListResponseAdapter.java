@@ -1,6 +1,6 @@
 package com.bricklink.api.html.support;
 
-import com.bricklink.api.html.model.v2.WantedList;
+import com.bricklink.api.html.model.v2.WantedSearchPageAggregate;
 import com.gargoylesoftware.htmlunit.ScriptResult;
 import com.gargoylesoftware.htmlunit.html.DomElement;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
@@ -12,17 +12,17 @@ import java.lang.reflect.Type;
 
 @Component
 @Slf4j
-public class WantedListResponseAdapter implements ResponseAdapter<WantedList> {
+public class WantedListResponseAdapter implements ResponseAdapter<WantedSearchPageAggregate> {
     @Override
-    public WantedList extract(Response response, Type type) {
-        WantedList wantedList = new WantedList();
+    public WantedSearchPageAggregate extract(Response response, Type type) {
+        WantedSearchPageAggregate wantedSearchPageAggregate = new WantedSearchPageAggregate();
         HtmlUnitBody body = (HtmlUnitBody) response.body();
         HtmlPage page = body.getHtmlPage();
         if (null == page) {
             log.warn("page is null");
         } else {
             if ("BrickLink Page Not Found".equals(page.getTitleText())) {
-                return wantedList;
+                return wantedSearchPageAggregate;
             }
             ScriptResult scriptResult = page.executeJavaScript("wlJson");
             log.info(scriptResult.toString());
@@ -35,11 +35,11 @@ public class WantedListResponseAdapter implements ResponseAdapter<WantedList> {
 //                catalogItem.setItemId(Integer.valueOf(itemIdString));
             }
         }
-        return wantedList;
+        return wantedSearchPageAggregate;
     }
 
     @Override
     public Type getType() {
-        return WantedList.class;
+        return WantedSearchPageAggregate.class;
     }
 }

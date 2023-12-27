@@ -1,6 +1,7 @@
 package com.bricklink.web.configuration;
 
-import com.bricklink.web.support.BricklinkWebService;
+import com.bricklink.web.api.BricklinkWebService;
+import com.bricklink.web.support.BricklinkWebServiceImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.http.HeaderElement;
 import org.apache.http.HeaderElementIterator;
@@ -18,7 +19,7 @@ import org.springframework.context.annotation.Configuration;
 public class BricklinkWebConfiguration {
     @Bean
     public BricklinkWebService bricklinkWebService(final HttpClientConnectionManager httpClientConnectionManager, final BricklinkWebProperties bricklinkWebProperties, final ObjectMapper objectMapper, final ConnectionKeepAliveStrategy connectionKeepAliveStrategy) {
-        return new BricklinkWebService(httpClientConnectionManager, bricklinkWebProperties, objectMapper, connectionKeepAliveStrategy);
+        return new BricklinkWebServiceImpl(httpClientConnectionManager, bricklinkWebProperties, objectMapper, connectionKeepAliveStrategy);
     }
 
     @Bean

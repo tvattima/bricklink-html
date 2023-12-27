@@ -1,5 +1,8 @@
 package com.bricklink.web.support;
 
+import com.bricklink.api.html.model.v2.WantedItem;
+import com.bricklink.api.html.model.v2.WantedList;
+import com.bricklink.web.api.BricklinkWebService;
 import com.bricklink.web.configuration.BricklinkWebConfiguration;
 import com.bricklink.web.configuration.BricklinkWebProperties;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -15,12 +18,13 @@ import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import org.springframework.util.StopWatch;
 
 import java.nio.file.Paths;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Slf4j
-@SpringJUnitConfig(classes = {BricklinkWebServiceTest.MyTestConfiguration.class, BricklinkWebConfiguration.class})
-public class BricklinkWebServiceTest {
+@SpringJUnitConfig(classes = {BricklinkWebServiceImplTest.MyTestConfiguration.class, BricklinkWebConfiguration.class})
+public class BricklinkWebServiceImplTest {
     @Autowired
     private ConnectionKeepAliveStrategy connectionKeepAliveStrategy;
 
@@ -57,25 +61,52 @@ public class BricklinkWebServiceTest {
 //    }
 
     @Test
-    void extractWantedListJson() {
-        BricklinkSession bricklinkSession = null;
+    void extractWantedLists() {
         StopWatch timer = new StopWatch();
         timer.start();
         try {
             ObjectMapper mapper = new ObjectMapper();
 
-            BricklinkWebService bricklinkWebService = new BricklinkWebService(httpClientConnectionManager, properties, mapper, connectionKeepAliveStrategy);
+            BricklinkWebService bricklinkWebService = new BricklinkWebServiceImpl(httpClientConnectionManager, properties, mapper, connectionKeepAliveStrategy);
             bricklinkWebService.authenticate();
 
-            bricklinkWebService.extractWantedList();
+            List<WantedList> wantedLists = bricklinkWebService.getWantedLists();
 
-            bricklinkSession = bricklinkWebService.logout();
+            assertThat(wantedLists).isNotEmpty();
+
+            wantedLists.forEach(wl -> {
+                log.info("Id: {} Name: [{}] Wanted Items Count: [{}]", wl.getId(), wl.getName(), wl.getNum());
+            });
+
+            bricklinkWebService.logout();
         } finally {
             timer.stop();
         }
-        assertThat(bricklinkSession).isNotNull();
     }
 
+    @Test
+    void extractWantedListItems() {
+        StopWatch timer = new StopWatch();
+        timer.start();
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+
+            BricklinkWebService bricklinkWebService = new BricklinkWebServiceImpl(httpClientConnectionManager, properties, mapper, connectionKeepAliveStrategy);
+            bricklinkWebService.authenticate();
+
+            List<WantedItem> wantedListItems = bricklinkWebService.getWantedListItems(9626930L);
+
+            assertThat(wantedListItems).isNotEmpty();
+
+            wantedListItems.forEach(wli -> {
+                log.info("Item No: {} Item Name: [{}] Color [{}] Wanted Quantity {} Wanted new {} ", wli.getItemNo(), wli.getItemName(), wli.getColorName(), wli.getWantedQty(), wli.getWantedNew());
+            });
+
+            bricklinkWebService.logout();
+        } finally {
+            timer.stop();
+        }
+    }
 
     @Disabled
     public void updateExtendedDescription() {
@@ -86,16 +117,14 @@ public class BricklinkWebServiceTest {
         try {
             ObjectMapper mapper = new ObjectMapper();
 
-            BricklinkWebService bricklinkWebService = new BricklinkWebService(httpClientConnectionManager, properties, mapper, connectionKeepAliveStrategy);
+            BricklinkWebServiceImpl bricklinkWebService = new BricklinkWebServiceImpl(httpClientConnectionManager, properties, mapper, connectionKeepAliveStrategy);
             bricklinkWebService.authenticate();
             bricklinkWebService.updateExtendedDescription(174935081L, extendedDescription);
-            bricklinkSession = bricklinkWebService.logout();
+            bricklinkWebService.logout();
         } finally {
             timer.stop();
         }
         log.info("Updated extended description to [{}] for inventory [{}] in [{}] ms", extendedDescription, 174935081L, timer.getTotalTimeMillis());
-
-        assertThat(bricklinkSession).isNotNull();
     }
 
 //    @Test

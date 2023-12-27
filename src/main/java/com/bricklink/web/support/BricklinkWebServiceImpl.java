@@ -1,13 +1,16 @@
 package com.bricklink.web.support;
 
+import com.bricklink.api.html.model.v2.WantedItem;
 import com.bricklink.api.html.model.v2.WantedList;
+import com.bricklink.api.html.model.v2.WantedListPageAggregate;
+import com.bricklink.api.html.model.v2.WantedSearchPageAggregate;
 import com.bricklink.web.BricklinkWebException;
+import com.bricklink.web.api.BricklinkWebService;
 import com.bricklink.web.configuration.BricklinkWebProperties;
 import com.bricklink.web.model.AuthenticationResult;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.RegExUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apache.http.HttpEntity;
@@ -35,46 +38,31 @@ import org.apache.http.util.EntityUtils;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.MalformedURLException;
-import java.net.PasswordAuthentication;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Random;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Slf4j
-public class BricklinkWebService {
-    private final HttpClientConnectionManager httpClientConnectionManager;
+public class BricklinkWebServiceImpl implements BricklinkWebService {
     private final BricklinkWebProperties properties;
     private final ObjectMapper objectMapper;
-    private final ConnectionKeepAliveStrategy connectionKeepAliveStrategy;
     private CloseableHttpClient httpClient;
     private BricklinkSession bricklinkSession;
-    private RequestConfig requestConfig = RequestConfig.custom()
+    private final RequestConfig requestConfig = RequestConfig.custom()
                                                        .setCookieSpec(CookieSpecs.STANDARD)
                                                        .build();
 
-    public BricklinkWebService(HttpClientConnectionManager httpClientConnectionManager, BricklinkWebProperties properties, ObjectMapper objectMapper, ConnectionKeepAliveStrategy connectionKeepAliveStrategy) {
-        this.httpClientConnectionManager = httpClientConnectionManager;
+    public BricklinkWebServiceImpl(HttpClientConnectionManager httpClientConnectionManager, BricklinkWebProperties properties, ObjectMapper objectMapper, ConnectionKeepAliveStrategy connectionKeepAliveStrategy) {
         this.properties = properties;
         this.objectMapper = objectMapper;
-        this.connectionKeepAliveStrategy = connectionKeepAliveStrategy;
-
-////        httpClient = HttpClients.custom()
-////                                .setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.121 Safari/537.36")
-////                                .setConnectionManager(httpClientConnectionManager)
-////                                .setKeepAliveStrategy(connectionKeepAliveStrategy)
-////                                .build();
-//        httpClient = HttpClientBuilder.create()
-//                                      .setConnectionManager(httpClientConnectionManager)
-//                                      .setKeepAliveStrategy(connectionKeepAliveStrategy)
-//                                      .setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.121 Safari/537.36")
-//                                      .build();
-//        this.bricklinkSession = authenticate();
 
         httpClient = HttpClients.custom()
                                 .setConnectionManager(httpClientConnectionManager)
@@ -82,10 +70,11 @@ public class BricklinkWebService {
                                 .build();
         httpClient = HttpClientBuilder.create()
                                       .build();
-        this.bricklinkSession = authenticate();
+        authenticate();
     }
 
-    public BricklinkSession uploadInventoryImage(Long blInventoryId, Path imagePath) {
+    @Override
+    public void uploadInventoryImage(Long blInventoryId, Path imagePath) {
 
         // GET imgAdd page
         URL imgAddUrl = properties.getURL("imgAdd");
@@ -123,14 +112,14 @@ public class BricklinkWebService {
         } catch (IOException e) {
             throw new BricklinkWebException(e);
         }
-        return bricklinkSession;
     }
 
-    public void extractWantedList() {
-        // GET imgAdd page
+    @Override
+    public List<WantedList> getWantedLists() {
+        // GET /v2/wanted/list.page
         URL wantedListUrl = null;
         try {
-            wantedListUrl = new URL("https://www.bricklink.com/v2/wanted/search.page?type=A&wantedMoreID=7159374&sort=1&pageSize=300");
+            wantedListUrl = new URL("https://www.bricklink.com/v2/wanted/list.page");
         } catch (MalformedURLException e) {
             e.printStackTrace();
         }
@@ -146,29 +135,118 @@ public class BricklinkWebService {
             }
             String html = new String(byteArrayOutputStream.toByteArray());
             String unescapedHtml =  StringEscapeUtils.unescapeHtml4(html);
-            System.out.println(html);
-            System.out.println(unescapedHtml);
 
             Pattern pattern = Pattern.compile("^.*wlJson\\s*=\\s*(.*?);.*$", Pattern.MULTILINE | Pattern.DOTALL);
             Matcher matcher = pattern.matcher(unescapedHtml);
-            matcher.find();
-            String wlJson = matcher.group(1);
-            log.info("{}", wlJson);
-            ObjectMapper mapper = new ObjectMapper();
-            WantedList wantedList = mapper.readValue(wlJson, WantedList.class);
+            List<WantedList> wantedLists;
+            if (matcher.find()) {
+                String wlJson = matcher.group(1);
+                ObjectMapper mapper = new ObjectMapper();
+                WantedListPageAggregate wantedListPageAggregate = mapper.readValue(wlJson, WantedListPageAggregate.class);
+                wantedLists = wantedListPageAggregate.getWantedLists();
+            } else {
+                throw new BricklinkWebException("wlJson not found in page content");
+            }
             EntityUtils.consume(response.getEntity());
             response.close();
+
+            return wantedLists;
         } catch (IOException e) {
             throw new BricklinkWebException(e);
         }
-
     }
 
-    public BricklinkSession authenticate() {
+    @Override
+    public Set<WantedItem> getWantedListItems(String name) {
+        return getWantedListItems(0L);
+    }
+
+    @Override
+    public Set<WantedItem> getWantedListItems(Long id) {
+        // GET /v2/wanted/list.page
+        URL wantedListUrl = null;
+        try {
+            wantedListUrl = new URL("https://www.bricklink.com/v2/wanted/search.page?pageSize=500&wantedMoreID="+id);
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        }
+        HttpGet wantedListGet = new HttpGet(wantedListUrl.toString());
+        wantedListGet.setConfig(requestConfig);
+        CloseableHttpResponse response = null;
+        try {
+            response = httpClient.execute(wantedListGet, bricklinkSession.getHttpContext());
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            HttpEntity entity = response.getEntity();
+            if (entity != null) {
+                entity.writeTo(byteArrayOutputStream);
+            }
+            String html = new String(byteArrayOutputStream.toByteArray());
+            String unescapedHtml =  StringEscapeUtils.unescapeHtml4(html);
+
+            Pattern pattern = Pattern.compile("^.*wlJson\\s*=\\s*(.*?);.*$", Pattern.MULTILINE | Pattern.DOTALL);
+            Matcher matcher = pattern.matcher(unescapedHtml);
+            Set<WantedItem> wantedListItems;
+            if (matcher.find()) {
+                String wlJson = matcher.group(1);
+                ObjectMapper mapper = new ObjectMapper();
+                WantedSearchPageAggregate wantedSearchPageAggregate = mapper.readValue(wlJson, WantedSearchPageAggregate.class);
+                wantedListItems = wantedSearchPageAggregate.getWantedItems();
+            } else {
+                throw new BricklinkWebException("wlJson not found in page content");
+            }
+            EntityUtils.consume(response.getEntity());
+            response.close();
+
+            return wantedListItems;
+        } catch (IOException e) {
+            throw new BricklinkWebException(e);
+        }
+    }
+//
+//    @Override
+//    public void extractWantedList() {
+//        // GET imgAdd page
+//        URL wantedListUrl = null;
+//        try {
+//            wantedListUrl = new URL("https://www.bricklink.com/v2/wanted/search.page?type=A&wantedMoreID=7159374&sort=1&pageSize=300");
+//        } catch (MalformedURLException e) {
+//            e.printStackTrace();
+//        }
+//        HttpGet wantedListGet = new HttpGet(wantedListUrl.toString());
+//        wantedListGet.setConfig(requestConfig);
+//        CloseableHttpResponse response = null;
+//        try {
+//            response = httpClient.execute(wantedListGet, bricklinkSession.getHttpContext());
+//            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+//            HttpEntity entity = response.getEntity();
+//            if (entity != null) {
+//                entity.writeTo(byteArrayOutputStream);
+//            }
+//            String html = new String(byteArrayOutputStream.toByteArray());
+//            String unescapedHtml =  StringEscapeUtils.unescapeHtml4(html);
+//            System.out.println(html);
+//            System.out.println(unescapedHtml);
+//
+//            Pattern pattern = Pattern.compile("^.*wlJson\\s*=\\s*(.*?);.*$", Pattern.MULTILINE | Pattern.DOTALL);
+//            Matcher matcher = pattern.matcher(unescapedHtml);
+//            matcher.find();
+//            String wlJson = matcher.group(1);
+//            log.info("{}", wlJson);
+//            ObjectMapper mapper = new ObjectMapper();
+//            WantedListAggregate wantedListAggregate = mapper.readValue(wlJson, WantedListAggregate.class);
+//            EntityUtils.consume(response.getEntity());
+//            response.close();
+//        } catch (IOException e) {
+//            throw new BricklinkWebException(e);
+//        }
+//    }
+
+    @Override
+    public void authenticate() {
         CookieStore cookieStore = new BasicCookieStore();
         HttpClientContext context = HttpClientContext.create();
         context.setCookieStore(cookieStore);
-        final BricklinkSession bricklinkSession = new BricklinkSession(context);
+        this.bricklinkSession = new BricklinkSession(context);
 
         // Authenticate
         String username = properties.getBricklink()
@@ -208,10 +286,10 @@ public class BricklinkWebService {
         } catch (IOException | URISyntaxException e) {
             throw new BricklinkWebException(e);
         }
-        return bricklinkSession;
     }
 
-    public BricklinkSession logout() {
+    @Override
+    public void logout() {
         URL logoutUrl = properties.getURL("login-logout");
         String logoutUrlString = logoutUrl.toExternalForm() + "?do_logout=true";
         HttpGet logout = new HttpGet(logoutUrlString);
@@ -226,23 +304,15 @@ public class BricklinkWebService {
         } catch (IOException e) {
             throw new BricklinkWebException(e);
         }
-        return bricklinkSession;
     }
 
-    public String computeMID() {
-        Random r = new Random();
-        Long systemTimeMillis = System.currentTimeMillis();
-        String hexSystemTimeMillis = Long.toHexString(systemTimeMillis);
-        String paddedHexSystemTimeMillis = StringUtils.rightPad(hexSystemTimeMillis, 16, '0');
-        String mid = paddedHexSystemTimeMillis + "-" + StringUtils.leftPad(Integer.toHexString(r.nextInt(65535) + 1), 4, '0') + StringUtils.leftPad(Integer.toHexString(r.nextInt(65535) + 1), 4, '0') + StringUtils.leftPad(Integer.toHexString(r.nextInt(65535) + 1), 4, '0') + StringUtils.leftPad(Integer.toHexString(r.nextInt(65535) + 1), 4, '0');
-        return mid;
-    }
-
+    @Override
     public HttpClient getHttpClient() {
         return this.httpClient;
     }
 
-    public BricklinkSession updateInventoryCondition(Long blInventoryId, String invNew, String invComplete) {
+    @Override
+    public void updateInventoryCondition(Long blInventoryId, String invNew, String invComplete) {
         log.info("Starting update of Bricklink inventory [{}] condition...", blInventoryId);
         // GET Inventory Detail page (contains form to update)
         URL inventoryDetailUrl = properties.getURL("inventoryDetail");
@@ -277,11 +347,10 @@ public class BricklinkWebService {
             throw new BricklinkWebException(e);
         }
         log.info("Updated Bricklink inventory [{}] Condition New/Used to [{}], Completeness to [{}]", blInventoryId, invNew, invComplete);
-
-        return bricklinkSession;
     }
 
-    public BricklinkSession updateExtendedDescription(Long blInventoryId, String extendedDescription) {
+    @Override
+    public void updateExtendedDescription(Long blInventoryId, String extendedDescription) {
         log.info("Starting update of Bricklink inventory [{}] extended description...", blInventoryId);
         // GET Inventory Detail page (contains form to update)
         URL inventoryDetailUrl = properties.getURL("inventoryDetail");
@@ -332,11 +401,10 @@ public class BricklinkWebService {
             throw new BricklinkWebException(e);
         }
         log.info("Updated Bricklink inventory [{}] Extended Description to [{}]", blInventoryId, extendedDescription);
-
-        return bricklinkSession;
     }
 
-    public byte[] dowloadWantedList(Long wantedListId, String wantedListName) {
+    @Override
+    public byte[] downloadWantedList(Long wantedListId, String wantedListName) {
         log.info("Starting download of Bricklink Wanted List [{}]...", wantedListId);
 
         URL wantedListDownloadUrl = properties.getURL("wantedListDownload");
@@ -359,16 +427,19 @@ public class BricklinkWebService {
         return outstream.toByteArray();
     }
 
-    private void addOldNewFormField(RequestBuilder requestBuilder, Long inventoryId, String formFieldName, String oldValue, String newValue) {
+    @Override
+    public void addOldNewFormField(RequestBuilder requestBuilder, Long inventoryId, String formFieldName, String oldValue, String newValue) {
         requestBuilder.addParameter("new" + formFieldName + inventoryId, newValue);
         requestBuilder.addParameter("old" + formFieldName + inventoryId, oldValue);
     }
 
-    private void addPlaceholderOldNewFormField(RequestBuilder requestBuilder, Long inventoryId, String formFieldName) {
+    @Override
+    public void addPlaceholderOldNewFormField(RequestBuilder requestBuilder, Long inventoryId, String formFieldName) {
         addOldNewFormField(requestBuilder, inventoryId, formFieldName, "x", "x");
     }
 
-    private void setInventoryUpdateFormFieldsForConditionUpdate(RequestBuilder requestBuilder, Long inventoryId, String invNew, String invComplete) {
+    @Override
+    public void setInventoryUpdateFormFieldsForConditionUpdate(RequestBuilder requestBuilder, Long inventoryId, String invNew, String invComplete) {
         requestBuilder.addParameter("invID", Long.toString(inventoryId));
         requestBuilder.addParameter("revID", "1");
         requestBuilder.addParameter("userID", Integer.toString(bricklinkSession.getAuthenticationResult()
@@ -401,7 +472,8 @@ public class BricklinkWebService {
         addPlaceholderOldNewFormField(requestBuilder, inventoryId, "CatID");
     }
 
-    private void setInventoryUpdateFormFieldsForExtendedDescriptionUpdate(RequestBuilder requestBuilder, Long inventoryId, String invExtended) {
+    @Override
+    public void setInventoryUpdateFormFieldsForExtendedDescriptionUpdate(RequestBuilder requestBuilder, Long inventoryId, String invExtended) {
         requestBuilder.addParameter("invID", Long.toString(inventoryId));
         requestBuilder.addParameter("revID", "1");
         requestBuilder.addParameter("userID", Integer.toString(bricklinkSession.getAuthenticationResult()
@@ -430,12 +502,22 @@ public class BricklinkWebService {
         addPlaceholderOldNewFormField(requestBuilder, inventoryId, "InvBuyerUsername");
     }
 
-    public String extractFromPattern(String content, Pattern pattern) {
+    private String extractFromPattern(String content, Pattern pattern) {
         String extracted = null;
         Matcher matcher = pattern.matcher(content);
         if (matcher.find()) {
             extracted = matcher.group(1);
         }
         return extracted;
+    }
+
+
+    private String computeMID() {
+        Random r = new Random();
+        Long systemTimeMillis = System.currentTimeMillis();
+        String hexSystemTimeMillis = Long.toHexString(systemTimeMillis);
+        String paddedHexSystemTimeMillis = StringUtils.rightPad(hexSystemTimeMillis, 16, '0');
+        String mid = paddedHexSystemTimeMillis + "-" + StringUtils.leftPad(Integer.toHexString(r.nextInt(65535) + 1), 4, '0') + StringUtils.leftPad(Integer.toHexString(r.nextInt(65535) + 1), 4, '0') + StringUtils.leftPad(Integer.toHexString(r.nextInt(65535) + 1), 4, '0') + StringUtils.leftPad(Integer.toHexString(r.nextInt(65535) + 1), 4, '0');
+        return mid;
     }
 }
