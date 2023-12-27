@@ -19,6 +19,7 @@ import org.springframework.util.StopWatch;
 
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -94,7 +95,7 @@ public class BricklinkWebServiceImplTest {
             BricklinkWebService bricklinkWebService = new BricklinkWebServiceImpl(httpClientConnectionManager, properties, mapper, connectionKeepAliveStrategy);
             bricklinkWebService.authenticate();
 
-            List<WantedItem> wantedListItems = bricklinkWebService.getWantedListItems(9626930L);
+            Set<WantedItem> wantedListItems = bricklinkWebService.getWantedListItems(9626930L);
 
             assertThat(wantedListItems).isNotEmpty();
 
