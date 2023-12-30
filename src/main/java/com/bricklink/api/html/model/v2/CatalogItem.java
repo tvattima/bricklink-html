@@ -19,6 +19,8 @@ public class CatalogItem {
     String itemNo;
     String itemName;
     String itemType;
+    String itemTypeName;
+    Integer catId;
 
     public double itemNameMatch(String itemName) {
         boolean match = true;

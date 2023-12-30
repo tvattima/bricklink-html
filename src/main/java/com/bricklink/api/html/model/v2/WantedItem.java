@@ -8,23 +8,26 @@ import lombok.EqualsAndHashCode;
 @Data
 public class WantedItem {
     @EqualsAndHashCode.Include
-    Long wantedID;
+    String itemID;
+    @EqualsAndHashCode.Include
+    Integer colorID;
+    @EqualsAndHashCode.Include
+    String wantedNew;
+
     Long wantedMoreID;
     String wantedMoreName;
+    Long wantedID;
     String itemNo;
-    String itemID;
     Integer itemSeq;
     String itemName;
     String itemType;
     String imgURL;
     Integer wantedQty;
     Integer wantedQtyFilled;
-    String wantedNew;
     String wantedNotify;
     String wantedRemark;
     Double wantedPrice;
     String formatWantedPrice;
-    Integer colorID;
     String colorName;
     String colorHex;
 }
