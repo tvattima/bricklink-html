@@ -325,7 +325,7 @@ public class BricklinkWebServiceImpl implements BricklinkWebService {
             EntityUtils.consume(response.getEntity());
             response.close();
         } catch (IOException e) {
-            throw new BricklinkWebException(String.format("blInventoryId [%d], invNew [%s], invComplete [%s]", blInventoryId, invNew, invComplete),e);
+            throw new BricklinkWebException("blInventoryId [%d], invNew [%s], invComplete [%s]".formatted(blInventoryId, invNew, invComplete),e);
         }
 
         // Update form fields
@@ -422,7 +422,7 @@ public class BricklinkWebServiceImpl implements BricklinkWebService {
             EntityUtils.consume(entity);
             response.close();
         } catch (IOException e) {
-            throw new BricklinkWebException(String.format("Unable to download wanted list [%d]", wantedListId), e);
+            throw new BricklinkWebException("Unable to download wanted list [%d]".formatted(wantedListId), e);
         }
         return outstream.toByteArray();
     }

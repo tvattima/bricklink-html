@@ -11,7 +11,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class ResponseAdapterRegistryTest {
 
     @Test
-    void test_RegisterMultiple() {
+    void registerMultiple() {
         ResponseAdapter<A> adapterA = new AResponseAdapter();
         ResponseAdapter<B> adapterB = new BResponseAdapter();
         ResponseAdapter<C> adapterC = new CResponseAdapter();
